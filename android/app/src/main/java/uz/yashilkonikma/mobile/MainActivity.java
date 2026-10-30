@@ -30,42 +30,110 @@ public class MainActivity extends Activity {
         if (state == null) showLaunchAnimation();
     }
 
+
     private void showLaunchAnimation() {
-        android.widget.FrameLayout splash = new android.widget.FrameLayout(this);
-        splash.setBackgroundColor(android.graphics.Color.rgb(240, 253, 244));
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setGravity(Gravity.CENTER);
-        ImageView leaf = new ImageView(this);
-        leaf.setImageResource(uz.yashilkonikma.mobile.R.drawable.ic_leaf);
-        content.addView(leaf, new LinearLayout.LayoutParams(dp(96), dp(96)));
-        TextView name = new TextView(this);
-        name.setText("Yashil Ko‘nikma");
-        name.setTextSize(28);
-        name.setTextColor(android.graphics.Color.rgb(6, 95, 70));
-        name.setGravity(Gravity.CENTER);
-        name.setPadding(0, dp(20), 0, dp(8));
-        content.addView(name);
-        TextView subtitle = new TextView(this);
-        subtitle.setText("Yashil kelajak sari");
-        subtitle.setTextSize(16);
-        subtitle.setTextColor(android.graphics.Color.rgb(4, 120, 87));
-        content.addView(subtitle);
-        splash.addView(content, new android.widget.FrameLayout.LayoutParams(-1, -1));
-        addContentView(splash, new android.view.ViewGroup.LayoutParams(-1, -1));
-        boolean animate = android.animation.ValueAnimator.areAnimatorsEnabled();
-        content.setAlpha(animate ? 0f : 1f);
-        content.setScaleX(animate ? 0.88f : 1f);
-        content.setScaleY(animate ? 0.88f : 1f);
-        if (animate) content.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(500)
-            .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
-        splash.postDelayed(() -> {
-            if (isFinishing() || isDestroyed()) return;
-            splash.animate().alpha(0f).setDuration(animate ? 250 : 0).withEndAction(() -> {
-                android.view.ViewParent parent = splash.getParent();
-                if (parent instanceof android.view.ViewGroup) ((android.view.ViewGroup) parent).removeView(splash);
-            }).start();
-        }, animate ? 1100 : 0);
+        if (!android.animation.ValueAnimator.areAnimatorsEnabled()) return;
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN
+            | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        LaunchView splash = new LaunchView(this);
+        addContentView(splash, new ViewGroup.LayoutParams(-1, -1));
+        splash.start();
+    }
+
+    /** Falling leaf transforms into the pixels of a two-line environmental message. */
+    private class LaunchView extends View {
+        private final android.graphics.Paint paint = new android.graphics.Paint(3);
+        private final java.util.ArrayList<float[]> dots = new java.util.ArrayList<>();
+        private final android.graphics.Path leaf = new android.graphics.Path();
+        private android.animation.ValueAnimator animator;
+        private float phase;
+        private float textSize;
+        private final String[] words = {"Har bir yashil qadam —", "kelajak uchun"};
+        LaunchView(Context context) {
+            super(context);
+            setClickable(true);
+            setContentDescription("Barg tushib, Har bir yashil qadam — kelajak uchun yozuviga aylanadi");
+            setOnClickListener(v -> dismiss());
+            leaf.moveTo(-42, 36);
+            leaf.cubicTo(-65, -18, -10, -55, 48, -42);
+            leaf.cubicTo(52, 14, 8, 58, -42, 36);
+            leaf.close();
+        }
+        void start() {
+            animator = android.animation.ValueAnimator.ofFloat(0f, 1f);
+            animator.setDuration(3400);
+            animator.setInterpolator(new android.view.animation.LinearInterpolator());
+            animator.addUpdateListener(a -> { phase = (float)a.getAnimatedValue(); invalidate(); });
+            animator.addListener(new android.animation.AnimatorListenerAdapter() {
+                @Override public void onAnimationEnd(android.animation.Animator a) { dismiss(); }
+            });
+            animator.start();
+        }
+        private void dismiss() {
+            if (animator != null) { animator.removeAllListeners(); animator.cancel(); }
+            if (getParent() instanceof ViewGroup) ((ViewGroup)getParent()).removeView(this);
+        }
+        @Override protected void onDetachedFromWindow() {
+            if (animator != null) { animator.removeAllListeners(); animator.cancel(); }
+            super.onDetachedFromWindow();
+        }
+        @Override protected void onSizeChanged(int w,int h,int oldw,int oldh) {
+            dots.clear();
+            textSize = Math.min(dp(25), w / 12.8f);
+            android.graphics.Bitmap mask = android.graphics.Bitmap.createBitmap(w, Math.max(1,dp(100)),android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas c = new android.graphics.Canvas(mask);
+            paint.reset(); paint.setAntiAlias(true); paint.setColor(android.graphics.Color.WHITE);
+            paint.setTypeface(android.graphics.Typeface.create("sans-serif-medium",android.graphics.Typeface.NORMAL));
+            paint.setTextSize(textSize); paint.setTextAlign(android.graphics.Paint.Align.CENTER);
+            c.drawText(words[0],w/2f,dp(36),paint); c.drawText(words[1],w/2f,dp(70),paint);
+            int step = Math.max(3,dp(3));
+            for(int y=0;y<mask.getHeight();y+=step) for(int x=0;x<w;x+=step)
+                if(android.graphics.Color.alpha(mask.getPixel(x,y))>100) dots.add(new float[]{x,y});
+            mask.recycle();
+        }
+        private float clamp(float x) { return Math.max(0f,Math.min(1f,x)); }
+        private float smooth(float x) { x=clamp(x);return x*x*(3-2*x); }
+        @Override protected void onDraw(android.graphics.Canvas c) {
+            super.onDraw(c);
+            float w=getWidth(),h=getHeight(),cx=w/2f,cy=h*0.43f;
+            if(w<=0 || h<=0) return;
+            setAlpha(1f-smooth((phase-0.92f)/0.08f));
+            paint.setShader(new android.graphics.LinearGradient(0,0,w,h,0xfff3fcf2,0xffd9f4e5,android.graphics.Shader.TileMode.CLAMP));
+            paint.setAlpha(255);c.drawRect(0,0,w,h,paint);paint.setShader(null);
+            paint.setColor(0x186bbf81);c.drawCircle(w*0.9f,h*0.1f,dp(150),paint);
+            c.drawCircle(w*0.05f,h*0.88f,dp(180),paint);
+            float fall=clamp(phase/0.42f), morph=smooth((phase-0.42f)/0.30f);
+            float lx=cx+(float)Math.sin(fall*Math.PI*3)*dp(45)*(1-fall);
+            float ly=-dp(90)+(cy+dp(90))*smooth(fall);
+            if(phase<0.51f) {
+                c.save();c.translate(lx,ly);c.rotate((float)Math.sin(fall*Math.PI*3)*24-20*(1-fall));
+                float scale=dp(1); c.scale(scale,scale);
+                paint.setColor(0xff13875a);paint.setAlpha((int)(255*(1-smooth((phase-0.42f)/0.09f))));
+                c.drawPath(leaf,paint);
+                paint.setColor(0xff9ee2ad);paint.setAlpha((int)(240*(1-smooth((phase-0.42f)/0.09f))));
+                paint.setStyle(android.graphics.Paint.Style.STROKE);paint.setStrokeWidth(2);
+                c.drawLine(-40,35,35,-30,paint);c.drawLine(-12,10,-29,-14,paint);c.drawLine(9,-9,31,0,paint);
+                paint.setStyle(android.graphics.Paint.Style.FILL);c.restore();
+            }
+            float textTop=cy-dp(48),solid=smooth((phase-0.71f)/0.08f);
+            if(phase>=0.42f && solid<1f) {
+                paint.setColor(0xff13875a);paint.setAlpha((int)(255*(1-solid)));
+                for(int i=0;i<dots.size();i++) {
+                    float[] d=dots.get(i);double angle=i*2.399963;
+                    float radius=(float)Math.sqrt((i+0.5)/Math.max(1,dots.size()))*dp(45);
+                    float sx=cx+(float)Math.cos(angle)*radius,sy=cy+(float)Math.sin(angle)*radius*0.65f;
+                    float arc=(float)Math.sin(morph*Math.PI)*dp(22);
+                    c.drawCircle(sx+(d[0]-sx)*morph,sy+(textTop+d[1]-sy)*morph-arc,Math.max(1,dp(1)),paint);
+                }
+            }
+            paint.setTypeface(android.graphics.Typeface.create("sans-serif-medium",android.graphics.Typeface.NORMAL));
+            paint.setTextAlign(android.graphics.Paint.Align.CENTER);paint.setTextSize(textSize);
+            paint.setColor(0xff075b40);paint.setAlpha((int)(255*solid));
+            c.drawText(words[0],cx,textTop+dp(36),paint);c.drawText(words[1],cx,textTop+dp(70),paint);
+            paint.setTextSize(dp(14));paint.setColor(0xff388b68);paint.setAlpha((int)(255*smooth((phase-0.75f)/0.1f)));
+            c.drawText("YASHIL KO‘NIKMA",cx,cy+dp(76),paint);
+            paint.setAlpha(255);
+        }
     }
 
     private int dp(int n) { return (int)(n * getResources().getDisplayMetrics().density); }
@@ -73,7 +141,7 @@ public class MainActivity extends Activity {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL); box.setPadding(dp(24), dp(48), dp(24), dp(24));
         TextView title = new TextView(this); title.setText("🌿 Yashil Ko‘nikma"); title.setTextSize(28); box.addView(title);
-        TextView info = new TextView(this); info.setText("Mavjud saytingizning HTTPS manzilini kiriting. Ilova shu saytdagi hisob, o‘yin va ma’lumotlardan foydalanadi."); box.addView(info);
+        TextView info = new TextView(this); info.setText("Sayt manzilini bir marta kiriting. Keyingi safar ilova avtomatik ochiladi."); box.addView(info);
         EditText url = new EditText(this); url.setSingleLine(true); url.setInputType(17); url.setHint("https://saytingiz.uz"); url.setText(site); box.addView(url);
         Button go = new Button(this); go.setText("Ilovani ochish"); box.addView(go);
         go.setOnClickListener(v -> {
