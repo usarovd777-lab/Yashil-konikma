@@ -31,7 +31,7 @@ public class MainActivity extends Activity {
     private int dp(int n) { return (int)(n * getResources().getDisplayMetrics().density); }
     private void configure() {
         LinearLayout box = new LinearLayout(this);
-        box.setOrientation(1); box.setPadding(dp(24), dp(48), dp(24), dp(24));
+        box.setOrientation(LinearLayout.VERTICAL); box.setPadding(dp(24), dp(48), dp(24), dp(24));
         TextView title = new TextView(this); title.setText("🌿 Yashil Ko‘nikma"); title.setTextSize(28); box.addView(title);
         TextView info = new TextView(this); info.setText("Mavjud saytingizning HTTPS manzilini kiriting. Ilova shu saytdagi hisob, o‘yin va ma’lumotlardan foydalanadi."); box.addView(info);
         EditText url = new EditText(this); url.setSingleLine(true); url.setInputType(17); url.setHint("https://saytingiz.uz"); url.setText(site); box.addView(url);
@@ -51,7 +51,7 @@ public class MainActivity extends Activity {
             && (a.getPort()==-1?443:a.getPort()) == (b.getPort()==-1?443:b.getPort());
     }
     private void openSite(Bundle state) {
-        root = new LinearLayout(this); root.setOrientation(1);
+        root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
         root.setOnApplyWindowInsetsListener((v,i) -> { v.setPadding(i.getSystemWindowInsetLeft(),i.getSystemWindowInsetTop(),i.getSystemWindowInsetRight(),i.getSystemWindowInsetBottom()); return i; });
         LinearLayout bar = new LinearLayout(this);
         Button back = new Button(this); back.setText("‹"); back.setContentDescription("Orqaga"); bar.addView(back);
