@@ -27,7 +27,47 @@ public class MainActivity extends Activity {
         super.onCreate(state);
         site = getPreferences(0).getString("site", "");
         if (site.isEmpty()) configure(); else openSite(state);
+        if (state == null) showLaunchAnimation();
     }
+
+    private void showLaunchAnimation() {
+        android.widget.FrameLayout splash = new android.widget.FrameLayout(this);
+        splash.setBackgroundColor(android.graphics.Color.rgb(240, 253, 244));
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setGravity(Gravity.CENTER);
+        ImageView leaf = new ImageView(this);
+        leaf.setImageResource(uz.yashilkonikma.mobile.R.drawable.ic_leaf);
+        content.addView(leaf, new LinearLayout.LayoutParams(dp(96), dp(96)));
+        TextView name = new TextView(this);
+        name.setText("Yashil Ko‘nikma");
+        name.setTextSize(28);
+        name.setTextColor(android.graphics.Color.rgb(6, 95, 70));
+        name.setGravity(Gravity.CENTER);
+        name.setPadding(0, dp(20), 0, dp(8));
+        content.addView(name);
+        TextView subtitle = new TextView(this);
+        subtitle.setText("Yashil kelajak sari");
+        subtitle.setTextSize(16);
+        subtitle.setTextColor(android.graphics.Color.rgb(4, 120, 87));
+        content.addView(subtitle);
+        splash.addView(content, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        addContentView(splash, new android.view.ViewGroup.LayoutParams(-1, -1));
+        boolean animate = android.animation.ValueAnimator.areAnimatorsEnabled();
+        content.setAlpha(animate ? 0f : 1f);
+        content.setScaleX(animate ? 0.88f : 1f);
+        content.setScaleY(animate ? 0.88f : 1f);
+        if (animate) content.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(500)
+            .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+        splash.postDelayed(() -> {
+            if (isFinishing() || isDestroyed()) return;
+            splash.animate().alpha(0f).setDuration(animate ? 250 : 0).withEndAction(() -> {
+                android.view.ViewParent parent = splash.getParent();
+                if (parent instanceof android.view.ViewGroup) ((android.view.ViewGroup) parent).removeView(splash);
+            }).start();
+        }, animate ? 1100 : 0);
+    }
+
     private int dp(int n) { return (int)(n * getResources().getDisplayMetrics().density); }
     private void configure() {
         LinearLayout box = new LinearLayout(this);
