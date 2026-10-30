@@ -53,10 +53,6 @@ public class MainActivity extends Activity {
     private void openSite(Bundle state) {
         root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
         root.setOnApplyWindowInsetsListener((v,i) -> { v.setPadding(i.getSystemWindowInsetLeft(),i.getSystemWindowInsetTop(),i.getSystemWindowInsetRight(),i.getSystemWindowInsetBottom()); return i; });
-        LinearLayout bar = new LinearLayout(this);
-        Button back = new Button(this); back.setText("‹"); back.setContentDescription("Orqaga"); bar.addView(back);
-        TextView label = new TextView(this); label.setText("Yashil Ko‘nikma"); label.setTextSize(18); bar.addView(label,new LinearLayout.LayoutParams(0,-2,1));
-        Button menu = new Button(this); menu.setText("⋮"); menu.setContentDescription("Menyu"); bar.addView(menu); root.addView(bar);
         progress = new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal); root.addView(progress,new LinearLayout.LayoutParams(-1,dp(3)));
         status = new TextView(this); status.setPadding(dp(12),dp(8),dp(12),dp(8)); status.setVisibility(View.GONE); root.addView(status);
         web = new WebView(this); root.addView(web,new LinearLayout.LayoutParams(-1,0,1)); setContentView(root);
@@ -102,12 +98,8 @@ public class MainActivity extends Activity {
             }
         });
         web.setDownloadListener((url,ua,disposition,mime,length)->download(url,disposition,mime));
-        back.setOnClickListener(v->onBackPressed()); status.setOnClickListener(v->{status.setVisibility(View.GONE);web.loadUrl(site);});
-        menu.setOnClickListener(v->{ PopupMenu m=new PopupMenu(this,menu);
-            m.getMenu().add("Yangilash").setOnMenuItemClickListener(i->{status.setVisibility(View.GONE);web.reload();return true;});
-            m.getMenu().add("Chop etish / PDF").setOnMenuItemClickListener(i->{printPage();return true;});
-            m.getMenu().add("Sayt manzili").setOnMenuItemClickListener(i->{web.destroy();web=null;configure();return true;}); m.show();
-        });
+        status.setOnClickListener(v->{status.setVisibility(View.GONE);web.loadUrl(site);});
+        status.setOnLongClickListener(v->{web.destroy();web=null;configure();return true;});
         if(state==null || web.restoreState(state)==null) web.loadUrl(site);
     }
     private void message(String s) { Toast.makeText(this,s,Toast.LENGTH_LONG).show(); }
